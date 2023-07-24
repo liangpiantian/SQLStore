@@ -95,7 +95,7 @@
             $(".shortdesc").off("dblclick");
             $(".shortdescinput").off("keypress");
             $(".shortdescinput").off("click");
-            $(".detail-fold,.detail-sql,.rem").off("click");
+            $(".detail-fold,.detail-sql,.rem").off("mousedown");
             /**阻止简述点击时向上冒泡**/
             $(".shortdesc").on("click",function(e){
                 e.stopPropagation();
@@ -149,29 +149,10 @@
                 $(this).children(".rem").hide(200);
             });
             /**点击目录文件，直接跳转**/
-            $(".detail-fold").on("click",function(e){
+            $(".detail-fold").on("mousedown",function(e){
                 let id=$(this).attr("xid");
                 location.href='jump?ID='+id+'&UserID={$UserID}&UserName={$UserName}';
             });
-            /**点击对应的删除按钮的操作**/
-            $(".rem").on("click",function(e){
-                e.stopPropagation();
-                let that=this;
-                let parent=$(this).parent();
-                let alert="";
-                $(parent).hasClass("detail-fold")?alert="你将删除目录下所有文件，确定删除吗？":alert="确定删除吗？";
-                if(confirm(alert)){
-                    let id=$(this).attr("xid");
-                    let url="deleteByID";
-                    $.post(url,{id:id},function(data){
-                        if(data['errcode']==0){
-                            $(that).parent().remove();
-                        }
-                    },'json');
-                }
-            });
-
-            $(".detail-sql").off("mousedown");
             /**点击SQL文件时操作，默认左键为修改这个SQL文件，中间键位新窗口打开***/
             $(".detail-sql").on("mousedown",function (e){
                 e.stopPropagation();
@@ -190,6 +171,23 @@
                 }else if(e.which==2){
                     let id=$(this).attr("xid");
                     window.open("showOneSql?ID="+id);
+                }
+            });
+            /**点击对应的删除按钮的操作**/
+            $(".rem").on("mousedown",function(e){
+                e.stopPropagation();
+                let that=this;
+                let parent=$(this).parent();
+                let alert="";
+                $(parent).hasClass("detail-fold")?alert="你将删除目录下所有文件，确定删除吗？":alert="确定删除吗？";
+                if(confirm(alert)){
+                    let id=$(this).attr("xid");
+                    let url="deleteByID";
+                    $.post(url,{id:id},function(data){
+                        if(data['errcode']==0){
+                            $(that).parent().remove();
+                        }
+                    },'json');
                 }
             });
         }
@@ -266,15 +264,47 @@
         setLabelEditable();
 
         $("textarea[name='sqlDetailSql']").on("keydown",function(e){
-            if(e.keyCode==9){
+            let o=this;
+            if(e.shiftKey&&e.key=='Tab'){
                 e.preventDefault();
-                let o=this;
+                let taContent=$(this).val();
+                let taArr=taContent.split("\n");
+                if (o.setSelectionRange) {
+                    let sS = o.selectionStart;
+                    let taConentS=taContent.substring(0,sS);
+                    let taSArr=taConentS.split("\n");
+                    let sE = o.selectionEnd;
+                    let taConentE=taContent.substring(0,sE);
+                    let taEArr=taConentE.split("\n");
+                    let Slines=0;
+                    let Elines=0;
+                    for(let i=taSArr.length-1;i<taEArr.length;i++){
+                        let cuLineStr=taArr[i];
+                        if(cuLineStr.substring(0,1)=="\t"){
+                            taArr[i]=cuLineStr.replace("\t","");
+                            i==taSArr.length-1?Slines++:"";
+                            Elines++;
+                        }else if(cuLineStr.substring(0,1)==" "){
+                            taArr[i]=cuLineStr.replace(" ","");
+                            i==taSArr.length-1?Slines++:"";
+                            Elines++;
+                        }
+                    }
+                    $(o).val(taArr.join("\n"));
+                    o.setSelectionRange(sS-Slines, sE-Elines);
+                }
+            }else if(e.keyCode==9){
+                e.preventDefault();
                 if (o.setSelectionRange)
                 {
-                    var sS = o.selectionStart;
-                    var sE = o.selectionEnd;
-                    o.value = o.value.substring(0, sS) + "\t" + o.value.substr(sE);
-                    o.setSelectionRange(sS + 1, sS + 1);
+                    let sS = o.selectionStart;
+                    let sE = o.selectionEnd;
+                    let choseText=o.value.substring(sS,sE);
+                    if(choseText!=""){
+                        choseText=choseText.replaceAll("\n","\n\t");
+                    }
+                    o.value = o.value.substring(0, sS) + "\t"+choseText + o.value.substr(sE);
+                    o.setSelectionRange(sS + 1, sS+1+choseText.length);
                     /*o.focus();*/
                 }
             }

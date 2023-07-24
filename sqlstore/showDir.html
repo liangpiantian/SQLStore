@@ -109,7 +109,7 @@
                 selectLabel=this;
                 $(".shortdescinput").hide();
                 $(".shortdesc").show();
-                let xid=$(this).attr("xid");console.log(xid);
+                let xid=$(this).attr("xid");
                 $(this).toggle();
                 let shortdescinputs=$(".shortdescinput");
                 for(let i=0;i<shortdescinputs.length;i++){
@@ -151,15 +151,13 @@
                 $(this).children(".rem").hide(200);
             });
 
-            $(".detail-fold,.detail-sql,.rem").off("click");
+            $(".detail-fold,.detail-sql,.rem").off("mousedown");
 
             /**点击目录文件，直接跳转**/
-            $(".detail-fold").on("click",function(e){
+            $(".detail-fold").on("mousedown",function(e){
                 let id=$(this).attr("xid");
                 location.href='jump?ID='+id+'&UserID={$UserID}&UserName={$UserName}';
             });
-
-            $(".detail-sql").off("mousedown");
             /**点击SQL文件时操作，默认左键为修改这个SQL文件，中间键位新窗口打开***/
             $(".detail-sql").on("mousedown",function (e){
                 e.stopPropagation();
@@ -182,7 +180,7 @@
             });
 
             /**点击对应的删除按钮的操作**/
-            $(".rem").on("click",function(e){
+            $(".rem").on("mousedown",function(e){
                 e.stopPropagation();
                 let that=this;
                 if(confirm("确定删除吗？")){
@@ -279,16 +277,49 @@
         /**设置对应的目录或SQL下的Label可编辑**/
         setLabelEditable();
 
+
         $("textarea[name='sqlDetailSql']").on("keydown",function(e){
-            if(e.keyCode==9){
+            let o=this;
+            if(e.shiftKey&&e.key=='Tab'){
                 e.preventDefault();
-                let o=this;
+                let taContent=$(this).val();
+                let taArr=taContent.split("\n");
+                if (o.setSelectionRange) {
+                    let sS = o.selectionStart;
+                    let taConentS=taContent.substring(0,sS);
+                    let taSArr=taConentS.split("\n");
+                    let sE = o.selectionEnd;
+                    let taConentE=taContent.substring(0,sE);
+                    let taEArr=taConentE.split("\n");
+                    let Slines=0;
+                    let Elines=0;
+                    for(let i=taSArr.length-1;i<taEArr.length;i++){
+                        let cuLineStr=taArr[i];
+                        if(cuLineStr.substring(0,1)=="\t"){
+                            taArr[i]=cuLineStr.replace("\t","");
+                            i==taSArr.length-1?Slines++:"";
+                            Elines++;
+                        }else if(cuLineStr.substring(0,1)==" "){
+                            taArr[i]=cuLineStr.replace(" ","");
+                            i==taSArr.length-1?Slines++:"";
+                            Elines++;
+                        }
+                    }
+                    $(o).val(taArr.join("\n"));
+                    o.setSelectionRange(sS-Slines, sE-Elines);
+                }
+            }else if(e.keyCode==9){
+                e.preventDefault();
                 if (o.setSelectionRange)
                 {
-                    var sS = o.selectionStart;
-                    var sE = o.selectionEnd;
-                    o.value = o.value.substring(0, sS) + "\t" + o.value.substr(sE);
-                    o.setSelectionRange(sS + 1, sS + 1);
+                    let sS = o.selectionStart;
+                    let sE = o.selectionEnd;
+                    let choseText=o.value.substring(sS,sE);
+                    if(choseText!=""){
+                        choseText=choseText.replaceAll("\n","\n\t");
+                    }
+                    o.value = o.value.substring(0, sS) + "\t"+choseText + o.value.substr(sE);
+                    o.setSelectionRange(sS + 1, sS+1+choseText.length);
                     /*o.focus();*/
                 }
             }
@@ -316,7 +347,6 @@
             let OwnerName='{$UserName}';
             let url="addOrChangeOne";
             $.post(url,{ID:ID,ShortDescr:ShortDescr,DetailSql:DetailSql,Levels:Levels,ParentID:ParentID,Types:Types,OwnerID:OwnerID,OwnerName:OwnerName},function(data){
-                console.log(data);
                 if(data['errcode']==0){
                     if(ID!=""){
                         $("#sqldiv").toggle(200);
@@ -358,7 +388,6 @@
             let OwnerName='{$UserName}';
             let url="addOrChangeOne";
             $.post(url,{ID:'',ShortDescr:ShortDescr,Levels:Levels,Types:Types,ParentID:ParentID,OwnerID:OwnerID,OwnerName:OwnerName},function(data){
-                console.log(data);
                 if(data['errcode']==0){
                     let str='<span class="detail-fold" xid="'+data['errmsg']+'">' +
                         '<span class="rem glyphicon glyphicon-remove" xid="'+data['errmsg']+'"></span>' +
